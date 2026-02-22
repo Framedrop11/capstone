@@ -1,3 +1,25 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* ──── Fintech Theme: Dark, Enterprise, Responsible AI ──── */
+/* Background: slate-950 | Cards: slate-900 | Accent: teal-400 | Borders: slate-800 */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased min-h-screen;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  * {
+    @apply border-slate-800;
+  }
+}
+
+@layer components {
+  .transition-fintech {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
