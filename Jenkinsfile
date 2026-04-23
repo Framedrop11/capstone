@@ -31,14 +31,25 @@ pipeline {
         stage('Health Check') {
             steps {
                 bat '''
-                set retries=10
-                :loop
-                curl -f http://localhost:3006/health
-                if %errorlevel%==0 exit /b 0
-                timeout /t 3 > nul
-                set /a retries-=1
-                if %retries% GTR 0 goto loop
-                exit /b 1
+                    @echo off
+                    set retries=15
+
+                    :loop
+                    echo Checking health... attempts remaining: %retries%
+                    curl -s -o NUL -w "%%{http_code}" http://localhost:3000/health | findstr "200" >NUL
+                    if %errorlevel%==0 (
+                        echo Health check passed!
+                        exit /b 0
+                    )
+
+                    set /a retries-=1
+                    if %retries% GTR 0 (
+                        ping -n 5 127.0.0.1 >NUL
+                        goto loop
+                    )
+
+                    echo Health check failed after all retries.
+                    exit /b 1
                 '''
             }
         }
