@@ -1,0 +1,191 @@
+{
+  "model_version": "1.0.0",
+  "training_timestamp": "2026-04-21T18:08:30.584210+00:00",
+  "total_samples": 50000,
+  "train_samples": 40000,
+  "test_samples": 10000,
+  "smote_train_samples": 60399,
+  "feature_names": [
+    "income_annual",
+    "loan_amount",
+    "employment_length",
+    "credit_history_age",
+    "home_ownership_encoded",
+    "lgd",
+    "ead",
+    "debt_to_income",
+    "loan_to_income_ratio",
+    "employment_stability_score",
+    "credit_maturity_score",
+    "risk_exposure_ratio"
+  ],
+  "home_ownership_map": {
+    "RENT": 0,
+    "OWN": 1,
+    "MORTGAGE": 2,
+    "OTHER": 3
+  },
+  "best_model": "XGBoost",
+  "model_results": [
+    {
+      "model_name": "XGBoost",
+      "roc_auc": 0.7818,
+      "f1_score": 0.4227,
+      "ks_statistic": 0.4514,
+      "training_time_seconds": 0.61,
+      "inference_time_ms": 0.0008,
+      "best_n_estimators": 119
+    },
+    {
+      "model_name": "LightGBM",
+      "roc_auc": 0.7752,
+      "f1_score": 0.4175,
+      "ks_statistic": 0.4511,
+      "training_time_seconds": 0.38,
+      "inference_time_ms": 0.001,
+      "best_n_estimators": 82
+    },
+    {
+      "model_name": "Logistic Regression",
+      "roc_auc": 0.7047,
+      "f1_score": 0.3091,
+      "ks_statistic": 0.3198,
+      "training_time_seconds": 0.14,
+      "inference_time_ms": 0.0001
+    }
+  ],
+  "cv_results": {
+    "XGBoost": {
+      "mean_auc": 0.8908,
+      "std_auc": 0.0022
+    },
+    "LightGBM": {
+      "mean_auc": 0.9032,
+      "std_auc": 0.0038
+    },
+    "Logistic Regression": {
+      "mean_auc": 0.7055,
+      "std_auc": 0.0043
+    }
+  },
+  "training_feature_stats": {
+    "income_annual": {
+      "mean": 114220.03453220111,
+      "std": 108976.07575637031,
+      "min": 12000.0,
+      "max": 500000.0,
+      "q25": 42092.695,
+      "q75": 136243.42009157594
+    },
+    "loan_amount": {
+      "mean": 19589.332140680763,
+      "std": 17637.694882107917,
+      "min": 1000.0,
+      "max": 192151.16967678492,
+      "q25": 9585.356819679086,
+      "q75": 22996.775
+    },
+    "employment_length": {
+      "mean": 4.965931833225702,
+      "std": 4.876850114232657,
+      "min": 0.0,
+      "max": 40.0,
+      "q25": 1.5,
+      "q75": 6.9
+    },
+    "credit_history_age": {
+      "mean": 108.9185304259318,
+      "std": 59.98667008073621,
+      "min": 11.104763131337283,
+      "max": 480.0,
+      "q25": 65.0,
+      "q75": 143.0
+    },
+    "home_ownership_encoded": {
+      "mean": 1.10886,
+      "std": 0.9565081278044484,
+      "min": 0.0,
+      "max": 3.0,
+      "q25": 0.0,
+      "q75": 2.0
+    },
+    "lgd": {
+      "mean": 0.4178695381237962,
+      "std": 0.13669827935762532,
+      "min": 0.09369610182167265,
+      "max": 0.901430881738822,
+      "q25": 0.319175,
+      "q75": 0.5126
+    },
+    "ead": {
+      "mean": 18121.929175548696,
+      "std": 16388.425420334202,
+      "min": 938.23,
+      "max": 195458.42206810653,
+      "q25": 8843.793517205417,
+      "q75": 21286.2275
+    },
+    "debt_to_income": {
+      "mean": 0.29419393786000003,
+      "std": 0.3373280573410163,
+      "min": 0.005444,
+      "max": 5.342326,
+      "q25": 0.1092365,
+      "q75": 0.355452
+    },
+    "loan_to_income_ratio": {
+      "mean": 0.27219691158,
+      "std": 0.3131121481158355,
+      "min": 0.005333,
+      "max": 5.192644,
+      "q25": 0.0999615,
+      "q75": 0.328796
+    },
+    "employment_stability_score": {
+      "mean": 1.4863192200000002,
+      "std": 0.7842095348255349,
+      "min": 0.0,
+      "max": 3.7136,
+      "q25": 0.9163,
+      "q75": 2.0669
+    },
+    "credit_maturity_score": {
+      "mean": 2.185778744,
+      "std": 0.5127332703134372,
+      "min": 0.6551,
+      "max": 3.7136,
+      "q25": 1.8589,
+      "q75": 2.5585
+    },
+    "risk_exposure_ratio": {
+      "mean": 0.11377265361999998,
+      "std": 0.14168331786626298,
+      "min": 0.001199,
+      "max": 2.718558,
+      "q25": 0.036727249999999996,
+      "q75": 0.1350635
+    }
+  },
+  "risk_grade_thresholds": {
+    "A": {
+      "min": 0.0,
+      "max": 0.15,
+      "label": "Low Risk"
+    },
+    "B": {
+      "min": 0.15,
+      "max": 0.3,
+      "label": "Moderate Risk"
+    },
+    "C": {
+      "min": 0.3,
+      "max": 0.5,
+      "label": "High Risk"
+    },
+    "D": {
+      "min": 0.5,
+      "max": 1.0,
+      "label": "Very High Risk"
+    }
+  }
+}
