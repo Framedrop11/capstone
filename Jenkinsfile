@@ -31,7 +31,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 bat 'ping 127.0.0.1 -n 11 > nul'
-                bat 'curl -f http://localhost:3000/health || exit 1'
+                bat 'curl -f http://localhost:3006/health || exit 1'
             }
         }
     }
