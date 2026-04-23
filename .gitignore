@@ -1,3 +1,19 @@
+# Create .gitignore
+@"
 node_modules/
 .env
+.env.local
+.DS_Store
 *.log
+dist/
+build/
+.next/
+out/
+models/*.pkl
+ml_service/__pycache__/
+ml_service/venv/
+ml_service/data/
+*.pyc
+.vscode/
+.idea/
+"@ | Out-File -FilePath .gitignore -Encoding utf8
