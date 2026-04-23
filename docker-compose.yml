@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # ── MongoDB ──
   mongo:
@@ -20,7 +18,6 @@ services:
       - "3006:3000"
     depends_on:
       - mongo
-      - ml_service
     environment:
       PORT: 3000
       MONGODB_URI: mongodb://mongo:27017/loginpage
@@ -28,8 +25,9 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/auth/google/callback}
+      FASTAPI_URL: http://localhost:8000
 
-  # ── FastAPI ML Microservice ──
+  # ── FastAPI ML Microservice (uncomment when ml_service/ folder is ready) ──
   # ml_service:
   #   build:
   #     context: ./ml_service
@@ -37,9 +35,6 @@ services:
   #   container_name: ml-service
   #   ports:
   #     - "8000:8000"
-  #   volumes:
-  #     - ./ml_service:/app
-  #     - ./ml_service/models:/app/models
   #   environment:
   #     - PYTHONUNBUFFERED=1
 
