@@ -30,18 +30,18 @@ services:
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3000/auth/google/callback}
 
   # ── FastAPI ML Microservice ──
-  ml_service:
-    build:
-      context: ./ml_service
-      dockerfile: Dockerfile
-    container_name: ml-service
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./ml_service:/app
-      - ./ml_service/models:/app/models
-    environment:
-      - PYTHONUNBUFFERED=1
+  # ml_service:
+  #   build:
+  #     context: ./ml_service
+  #     dockerfile: Dockerfile
+  #   container_name: ml-service
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./ml_service:/app
+  #     - ./ml_service/models:/app/models
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
 
 volumes:
   mongo-data:
