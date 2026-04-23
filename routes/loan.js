@@ -136,4 +136,72 @@ router.get('/history', authenticate, async (req, res) => {
   }
 });
 
+// @route   POST /api/loan/fight
+// @desc    Get fight-rejection recommendation
+// @access  Private (Borrower)
+router.post('/fight', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { features, currentPd } = req.body;
+
+    // If ML service is available, call it
+    let fightData;
+    
+    try {
+      const mlResponse = await axios.post(`${FASTAPI_URL}/fight-rejection`, {
+        features: features || {},
+        current_pd: currentPd
+      });
+      fightData = mlResponse.data;
+    } catch (mlError) {
+      console.log('ML service unavailable, using fallback');
+      
+      // Fallback recommendation based on common factors
+      const recommendations = [
+        {
+          message: "Reduce your credit utilization to below 30% for immediate improvement.",
+          action: {
+            feature: "credit_utilization",
+            recommended_change: "Pay down credit card balances",
+            expected_pd_improvement: 0.08,
+            current_grade: currentPd < 0.20 ? "A" : currentPd < 0.35 ? "B" : currentPd < 0.55 ? "C" : "D",
+            projected_grade: currentPd - 0.08 < 0.20 ? "A" : currentPd - 0.08 < 0.35 ? "B" : currentPd - 0.08 < 0.55 ? "C" : "D"
+          }
+        },
+        {
+          message: "Increase your employment stability by staying at your current job for 6+ months.",
+          action: {
+            feature: "income_stability_score",
+            recommended_change: "Maintain current employment",
+            expected_pd_improvement: 0.05,
+            current_grade: currentPd < 0.20 ? "A" : currentPd < 0.35 ? "B" : currentPd < 0.55 ? "C" : "D",
+            projected_grade: currentPd - 0.05 < 0.20 ? "A" : currentPd - 0.05 < 0.35 ? "B" : currentPd - 0.05 < 0.55 ? "C" : "D"
+          }
+        }
+      ];
+      
+      // Pick the most impactful one
+      fightData = recommendations[0];
+    }
+
+    // Log audit
+    const AuditLog = require('../models/AuditLog');
+    await AuditLog.create({
+      userId,
+      action: 'FIGHT_REJECTION_REQUESTED',
+      details: {
+        currentPd,
+        recommendation: fightData.message
+      },
+      timestamp: new Date()
+    });
+
+    res.json(fightData);
+    
+  } catch (error) {
+    console.error('Fight rejection error:', error);
+    res.status(500).json({ error: 'Server error generating recommendation' });
+  }
+});
+
 module.exports = router;

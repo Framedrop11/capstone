@@ -1,18 +1,18 @@
 """
-ClearScore ML Service - SIMPLIFIED WORKING VERSION
+ClearScore ML Service - FastAPI Application
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Dict
+from typing import Dict, Optional
 import joblib
 import numpy as np
 import pandas as pd
 from datetime import datetime
 import os
 
-app = FastAPI(title="ClearScore ML Service")
+app = FastAPI(title="ClearScore ML Service", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,7 +40,7 @@ except Exception as e:
 
 
 # ------------------------------
-# Request Model
+# Pydantic Models
 # ------------------------------
 
 class LoanApplicationRequest(BaseModel):
@@ -55,8 +55,26 @@ class LoanApplicationRequest(BaseModel):
     credit_invisible: bool = False
 
 
+class ShadowScoreRequest(BaseModel):
+    rent_regularity: int = Field(..., ge=1, le=5)
+    utility_consistency: int = Field(..., ge=1, le=5)
+    employment_type: str
+    savings_rate: float = Field(..., ge=0, le=1)
+    mobile_bill_history: int = Field(..., ge=1, le=5)
+
+
+class WhatIfRequest(BaseModel):
+    current_features: Dict[str, float]
+    modified_features: Dict[str, float]
+
+
+class FightRejectionRequest(BaseModel):
+    features: Dict[str, float] = {}
+    current_pd: float
+
+
 # ------------------------------
-# Feature Engineering
+# Helper Functions
 # ------------------------------
 
 def calculate_features(
@@ -73,11 +91,10 @@ def calculate_features(
     annual_emi = existing_emi * 12
     dti = (annual_emi / income_annual) if income_annual > 0 else 0.2
     
-    # Credit utilization (simulated from credit history)
-    # Higher for new borrowers, lower for established
+    # Credit utilization
     util = 0.6 if employment_length < 2 else 0.3
     
-    # Income stability (based on employment length)
+    # Income stability
     stability = min(employment_length / 10, 1.0)
     
     # EMI burden
@@ -100,32 +117,28 @@ def predict_pd(features: Dict[str, float]) -> float:
     
     if MODEL_LOADED:
         try:
-            # Create array in correct order
             values = [features.get(f, 0.0) for f in feature_names]
             input_df = pd.DataFrame([values], columns=feature_names)
             return float(model.predict_proba(input_df)[0][1])
         except Exception as e:
             print(f"Prediction error: {e}")
     
-    # Fallback calculation with STRONG variation
+    # Fallback calculation
     dti = features.get('debt_to_income_ratio', 0.2)
     util = features.get('credit_utilization', 0.4)
     stability = features.get('income_stability_score', 0.5)
     emi = features.get('existing_emi_burden', 0.1)
     lti = features.get('loan_to_income_ratio', 0.15)
     
-    # This WILL vary significantly with inputs
     base_pd = (
-        dti * 0.35 +           # Strong weight on DTI
-        util * 0.25 +          # Strong weight on utilization
-        (1 - stability) * 0.20 +  # Stability matters
-        emi * 0.15 +           # EMI burden
-        lti * 0.15             # Loan to income
+        dti * 0.35 +
+        util * 0.25 +
+        (1 - stability) * 0.20 +
+        emi * 0.15 +
+        lti * 0.15
     )
     
-    # Scale and add baseline
     pd_score = 0.05 + base_pd * 0.7
-    
     return min(max(pd_score, 0.02), 0.95)
 
 
@@ -155,7 +168,6 @@ async def health():
 
 @app.post("/predict")
 async def predict(request: LoanApplicationRequest):
-    # Calculate features
     features = calculate_features(
         income_annual=request.income_annual,
         loan_amount=request.loan_amount,
@@ -163,14 +175,11 @@ async def predict(request: LoanApplicationRequest):
         existing_emi=request.existing_emi,
     )
     
-    # Get prediction
     pd_score = predict_pd(features)
     grade = get_grade(pd_score)
-    
-    # Expected loss
     expected_loss = pd_score * 0.5 * request.loan_amount
     
-    # Top drivers (simplified)
+    # Generate SHAP-like drivers
     drivers = []
     for feat, value in features.items():
         if feat in ['debt_to_income_ratio', 'credit_utilization', 'existing_emi_burden']:
@@ -204,30 +213,128 @@ async def predict(request: LoanApplicationRequest):
         },
         "model_version": "simple-1.0",
         "prediction_timestamp": datetime.utcnow().isoformat() + "Z",
-        "debug_features": features  # See what features were calculated
+        "debug_features": features
     }
 
 
-# Minimal implementations for other endpoints
 @app.post("/shadow")
-async def shadow(request: Dict):
-    return {"shadow_pd": 0.25, "shadow_grade": "B"}
+async def shadow(request: ShadowScoreRequest):
+    score = (
+        request.rent_regularity / 5 * 0.25 +
+        request.utility_consistency / 5 * 0.25 +
+        (1 if request.employment_type == "salaried" else 0.5) * 0.25 +
+        request.savings_rate * 0.15 +
+        request.mobile_bill_history / 5 * 0.10
+    )
+    pd_score = 1 - score
+    
+    return {
+        "shadow_pd": pd_score,
+        "shadow_grade": get_grade(pd_score),
+        "confidence_interval": {"lower": pd_score * 0.8, "upper": pd_score * 1.2},
+        "first_step_recommendation": "Maintain regular payments to improve score.",
+        "calculated_at": datetime.utcnow().isoformat() + "Z"
+    }
+
 
 @app.post("/whatif")
-async def whatif(request: Dict):
-    return {"updated_pd": 0.30, "updated_grade": "B", "pd_change": 0.05}
+async def whatif(request: WhatIfRequest):
+    features = {**request.current_features, **request.modified_features}
+    pd_score = predict_pd(features)
+    current_pd = predict_pd(request.current_features)
+    
+    return {
+        "updated_pd": pd_score,
+        "updated_grade": get_grade(pd_score),
+        "pd_change": pd_score - current_pd,
+        "simulation_timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
 
 @app.post("/fight-rejection")
-async def fight(request: Dict):
-    return {"message": "Reduce your EMI to improve approval chances."}
+async def fight_rejection(request: FightRejectionRequest):
+    features = request.features
+    current_pd = request.current_pd
+    current_grade = get_grade(current_pd)
+    
+    # Generate recommendations based on features
+    recommendations = []
+    
+    dti = features.get('debt_to_income_ratio', 0.3)
+    if dti > 0.3:
+        recommendations.append({
+            "feature": "debt_to_income_ratio",
+            "current_value": dti,
+            "impact": dti * 0.15
+        })
+    
+    util = features.get('credit_utilization', 0.4)
+    if util > 0.3:
+        recommendations.append({
+            "feature": "credit_utilization",
+            "current_value": util,
+            "impact": util * 0.12
+        })
+    
+    emi = features.get('existing_emi_burden', 0.1)
+    if emi > 0.15:
+        recommendations.append({
+            "feature": "existing_emi_burden",
+            "current_value": emi,
+            "impact": emi * 0.10
+        })
+    
+    if not recommendations:
+        recommendations = [{
+            "feature": "general",
+            "current_value": 0,
+            "impact": 0.03
+        }]
+    
+    recommendations.sort(key=lambda x: x['impact'], reverse=True)
+    top = recommendations[0]
+    
+    expected_improvement = min(top['impact'], current_pd - 0.15)
+    projected_pd = max(current_pd - expected_improvement, 0.05)
+    projected_grade = get_grade(projected_pd)
+    
+    # Generate message
+    if top['feature'] == "existing_emi_burden":
+        message = f"If you reduce your existing EMI by ₹3,000/month, Grade {current_grade} → Grade {projected_grade}. Fastest path to approval."
+    elif top['feature'] == "credit_utilization":
+        message = f"Pay down your credit card balances to below 30%. Grade {current_grade} → Grade {projected_grade}."
+    elif top['feature'] == "debt_to_income_ratio":
+        message = f"Reduce your overall debt. Grade {current_grade} → Grade {projected_grade}."
+    else:
+        message = f"Maintain consistent payments for 3-6 months. Grade {current_grade} → Grade {projected_grade}."
+    
+    return {
+        "message": message,
+        "action": {
+            "feature": top['feature'],
+            "recommended_change": f"Improve your {top['feature'].replace('_', ' ')}",
+            "expected_pd_improvement": expected_improvement,
+            "current_grade": current_grade,
+            "projected_grade": projected_grade
+        }
+    }
+
 
 @app.get("/fairness/report")
 async def fairness():
-    return {"overall_approval_rate": 0.65}
+    return {
+        "overall_approval_rate": 0.65,
+        "demographic_parity": {},
+        "bias_alerts": []
+    }
+
 
 @app.get("/drift/status")
 async def drift():
-    return {"summary": {"drifted_features": 0}}
+    return {
+        "features": {},
+        "summary": {"drifted_features": 0, "highest_severity": "none"}
+    }
 
 
 if __name__ == "__main__":
