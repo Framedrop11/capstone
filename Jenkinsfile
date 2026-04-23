@@ -31,10 +31,13 @@ pipeline {
         stage('Health Check') {
             steps {
                 bat '''
-                for /l %%i in (1,1,10) do (
-                curl -f http://localhost:3006/health && exit /b 0
+                set retries=10
+                :loop
+                curl -f http://localhost:3006/health
+                if %errorlevel%==0 exit /b 0
                 timeout /t 3 > nul
-                )
+                set /a retries-=1
+                if %retries% GTR 0 goto loop
                 exit /b 1
                 '''
             }
