@@ -26,6 +26,7 @@ A simple, clean login & signup application with **MongoDB**, **Google OAuth**, *
 ### Prerequisites
 
 - **Node.js 18+**
+- **Python 3.10+** (for `ml_service`)
 - **MongoDB** running locally (install [MongoDB Compass](https://www.mongodb.com/products/compass) for a GUI)
 
 ### Steps
@@ -42,6 +43,41 @@ npm start
 
 # 4. Open browser
 #    http://localhost:3000
+```
+
+---
+
+## Run (ML + API + Backend + Frontend)
+
+### 1) Train the model (creates `rf_model.pkl`, `feature_names.pkl`)
+
+```bash
+cd ml_service
+python -m pip install -r requirements.txt
+python model_trainer.py
+```
+
+### 2) Start FastAPI (ML service) on `http://localhost:8000`
+
+```bash
+cd ml_service
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 3) Start Node backend on `http://localhost:3000`
+
+```bash
+cd .
+npm install
+npm start
+```
+
+### 4) Start Next frontend (dev)
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
